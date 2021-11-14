@@ -15,7 +15,8 @@
 module Network.Wamp.Client
   ( WampApp
   , Session
-  , Auth
+  , Auth(..)
+  , CallResult(..)
   , runClientWebSocket
 
   , subscribe

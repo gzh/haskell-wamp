@@ -20,6 +20,13 @@ data Auth = AuthAnonymous
           | AuthCryptosign AuthId SecretKey
           deriving(Eq,Show)
 
+instance FromJSON Auth where
+  parseJSON = withObject "Network.Wamp.Client.Auth" $ \o -> do
+    m <- o .: "method"
+    case m :: T.Text of
+      "anonymous" -> return AuthAnonymous
+      "cryptosign" -> AuthCryptosign <$> o .: "role" <*> o .: "secret"
+
 computeAuthExtra :: Auth -> Either String [Pair]
 computeAuthExtra AuthAnonymous = Right $ ["authmethods" .= toJSON ["anonymous"::T.Text]]
 computeAuthExtra (AuthCryptosign authId secretKey) =
