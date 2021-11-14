@@ -25,6 +25,7 @@ computeAuthExtra AuthAnonymous = Right $ ["authmethods" .= toJSON ["anonymous"::
 computeAuthExtra (AuthCryptosign authId secretKey) =
   Cryptosign.computeAuthExtra authId <$> Cryptosign.extractSecretKey secretKey
 
+processChallenge :: Auth -> Message -> Either String Signature
 processChallenge AuthAnonymous _ = Left "CHALLENGE cannot be processed with anonymous auth method"
 processChallenge (AuthCryptosign _ secretKey)  msg =
   case msg of
