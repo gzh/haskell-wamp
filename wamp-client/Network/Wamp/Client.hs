@@ -17,6 +17,7 @@ module Network.Wamp.Client
   , Session
   , Auth(..)
   , CallResult(..)
+  , WampUserException(..)
   , runClientWebSocket
 
   , subscribe
@@ -36,7 +37,7 @@ module Network.Wamp.Client
 where
 
 import           Control.Concurrent.MVar
-import           Control.Exception       (throwIO, try, SomeException, Exception, toException)
+import           Control.Exception       (throwIO, try, SomeException, Exception, toException, fromException)
 import           Data.Aeson              hiding (Result, Options, Error)
 import qualified Data.HashMap.Strict     as HM
 import qualified Network.WebSockets      as WS
@@ -44,6 +45,7 @@ import qualified System.Random           as R
 import qualified Data.IxSet              as Ix
 import qualified Data.Vector             as V
 import qualified Data.Text               as T
+import Data.Typeable
 
 import Control.Concurrent.Async(race, forConcurrently_)
 import Control.Concurrent(forkFinally)
@@ -268,11 +270,14 @@ readerLoop session = go
                       complete eres =
                         case eres of
                           Left x ->
-                            sendMessage conn $
-                            Error MsgTypeInvocation reqId (Details HM.empty)
-                            "wamp.error.exception"
-                            (Arguments $ V.singleton $ String $ T.pack $ show (x::SomeException))
-                            (ArgumentsKw HM.empty)
+                            let (eargs, eargskw) =
+                                  case fromException x of
+                                    Just (WampUserException eargs eargskw) -> (eargs, eargskw)
+                                    Nothing -> (Arguments $ V.singleton $ String $ T.pack $ show (x::SomeException),
+                                                ArgumentsKw HM.empty)
+                            in sendMessage conn $
+                               Error MsgTypeInvocation reqId (Details HM.empty)
+                               "wamp.error.exception" eargs eargskw
                           Right (res,reskw) ->
                             sendMessage conn $ Yield reqId (Options HM.empty) res reskw
                   in if registrationHandleAsync reg
@@ -385,3 +390,9 @@ finalizeSession session =
   
 genGlobalId :: IO ID
 genGlobalId = R.randomRIO (0, 2^(53 :: Int))
+
+-- The type which can be thrown from haskell method invocation handler
+-- so that underlying JSON Value is received by the caller.
+data WampUserException = WampUserException Arguments ArgumentsKw deriving(Show, Typeable)
+
+instance Exception WampUserException
