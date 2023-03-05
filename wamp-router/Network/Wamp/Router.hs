@@ -29,6 +29,8 @@ where
 
 import           Control.Concurrent.MVar
 import           Data.Aeson
+import           Data.Aeson.Key
+import qualified Data.Aeson.KeyMap     as KM
 import qualified Data.HashMap.Strict   as HM
 import qualified System.Random         as R
 
@@ -133,10 +135,10 @@ establishSession realmMap conn = do
                 }
 
           -- TODO: send actual roles instead of fixed dict
-          sendMessage conn $ Welcome sessId $ Details $ HM.fromList
-            [ "roles" .= object 
-              [ "broker" .= object []
-              , "dealer" .= object []
+          sendMessage conn $ Welcome sessId $ Details $ KM.fromList
+            [ fromText "roles" .= object 
+              [ fromText "broker" .= object []
+              , fromText "dealer" .= object []
               ]
             ]
 

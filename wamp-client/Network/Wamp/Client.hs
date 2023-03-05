@@ -39,7 +39,8 @@ where
 import           Control.Concurrent.MVar
 import           Control.Exception       (throwIO, try, SomeException, Exception, toException, fromException)
 import           Data.Aeson              hiding (Result, Options, Error)
-import qualified Data.HashMap.Strict     as HM
+import           Data.Aeson.Key
+import qualified Data.Aeson.KeyMap       as KM
 import qualified Network.WebSockets      as WS
 import qualified System.Random           as R
 import qualified Data.IxSet              as Ix
@@ -131,12 +132,12 @@ connect conn realmUri auth =
     Right extra -> do
       sendMessage conn $
         Hello realmUri
-        (Details $ HM.fromList
-          (["roles" .= object
-             [ "callee"     .= object []
-             , "caller"     .= object []
-             , "publisher"  .= object []
-             , "subscriber" .= object []
+        (Details $ KM.fromList
+          ([fromText "roles" .= object
+             [ fromText "callee"     .= object []
+             , fromText "caller"     .= object []
+             , fromText "publisher"  .= object []
+             , fromText "subscriber" .= object []
              ]
            ] <> extra))
       go
@@ -148,7 +149,7 @@ connect conn realmUri auth =
               case processChallenge auth msg of
                 Left err -> throwIO $ ProtocolException $ "Could not process Challenge: " ++ err
                 Right sign -> do
-                  sendMessage conn $ Authenticate sign (Extra HM.empty)
+                  sendMessage conn $ Authenticate sign (Extra mempty)
                   go
             Welcome sessId _ -> mkSession conn sessId
             _ -> throwIO $ ProtocolException $ "Unexpected message: " ++ show msg
@@ -163,7 +164,7 @@ readerLoop session = go
 
             Goodbye {} -> do
               finalizeSession session
-              sendMessage conn $ Goodbye (Details HM.empty) "wamp.close.goodbye_and_out"
+              sendMessage conn $ Goodbye (Details mempty) "wamp.close.goodbye_and_out"
 
             Error msgType reqId details errorUri args argskw -> do
               let fail' :: (Storeable a, HasPromise a b, Exception e) =>
@@ -274,12 +275,12 @@ readerLoop session = go
                                   case fromException x of
                                     Just (WampUserException eargs eargskw) -> (eargs, eargskw)
                                     Nothing -> (Arguments $ V.singleton $ String $ T.pack $ show (x::SomeException),
-                                                ArgumentsKw HM.empty)
+                                                ArgumentsKw mempty)
                             in sendMessage conn $
-                               Error MsgTypeInvocation reqId (Details HM.empty)
+                               Error MsgTypeInvocation reqId (Details mempty)
                                "wamp.error.exception" eargs eargskw
                           Right (res,reskw) ->
-                            sendMessage conn $ Yield reqId (Options HM.empty) res reskw
+                            sendMessage conn $ Yield reqId (Options mempty) res reskw
                   in if registrationHandleAsync reg
                      then void $ forkFinally call complete
                      else try call >>= complete
@@ -308,7 +309,7 @@ publishAck' :: Session -> TopicUri -> Arguments -> ArgumentsKw -> Options -> IO 
 publishAck' session topicUri args kwArgs (Options optionsDict) = do
   reqId <- sessionGenId session >>= return . ReqId
   res <- newEmptyMVar
-  let opts = Options $ HM.insert "acknowledge" (Bool True) optionsDict
+  let opts = Options $ KM.insert "acknowledge" (Bool True) optionsDict
       pub = Publish reqId opts topicUri args kwArgs
       pubrq = PublishRequest res reqId
   insert (sessionPublishRequests session) pubrq

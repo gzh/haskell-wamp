@@ -4,7 +4,7 @@ import qualified Data.ByteString.Base16 as BSB16
 import qualified Data.ByteString as BS
 import qualified Data.Text.Encoding as T
 import qualified Data.Text as T
-import qualified Data.HashMap.Strict   as HM
+import qualified Data.Aeson.KeyMap   as KM
 import qualified Crypto.Sign.Ed25519 as Ed
 import           Network.Wamp.Messages
 import           Network.Wamp.Types
@@ -14,7 +14,7 @@ import Data.Maybe
 
 processChallenge :: Ed.SecretKey -> Extra -> Either String Signature
 processChallenge secretKey (Extra dict) =
-  case HM.lookup "challenge" dict of
+  case KM.lookup "challenge" dict of
     Nothing -> Left "could not find challenge data"
     Just (String challengeHex) ->
       let echallenge = BSB16.decode $ T.encodeUtf8 challengeHex

@@ -15,6 +15,7 @@ import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.WebSockets             as WS
 
 import           Data.Aeson                     (Value (Bool))
+import qualified Data.Aeson.KeyMap              as KM
 import qualified Data.HashMap.Strict            as HM
 
 import           Network.Wamp
@@ -118,7 +119,7 @@ messageHandler router session m = do
       -- for processing.
       --
       -- Moreover Published must only be sent when opts.acknowledge == True.
-      case HM.lookup "acknowledge" opts of
+      case KM.lookup "acknowledge" opts of
         Just (Bool True) -> sendMessage conn $ Published reqId pubId
         _                -> return ()
 

@@ -45,8 +45,8 @@ where
 
 import           Data.Int              (Int64)
 import           Data.Aeson hiding(Options)
+import qualified Data.Aeson.KeyMap as KM
 import           Data.Hashable         (Hashable)
-import qualified Data.HashMap.Strict   as HM
 import qualified Data.Vector           as V
 import           Data.Maybe            (fromJust)
 import           Data.String           (IsString (..))
@@ -70,7 +70,7 @@ type URI = Text
      
 
 -- | Internal representation for dict types.
-type Dict = HM.HashMap Text Value
+type Dict = KM.KeyMap Value
 
 
 --
@@ -232,4 +232,4 @@ array = V.empty
 
 -- | Empty dict.
 dict :: Dict
-dict = HM.empty
+dict = KM.empty
