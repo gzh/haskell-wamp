@@ -1,5 +1,5 @@
 name:         wamp
-version:      "0.1.0.0"
+version:      0.1.1.0
 synopsis:     WAMP v2 Basic Profile
 description:  Web Application Messaging Protocol v2 Basic Profile
 author:       Maciej Kazulak
@@ -13,9 +13,6 @@ build-type:   Simple
 default-extensions:
   - OverloadedStrings
 
-extra-source-files:
-  - README.md
-
 library:
   exposed-modules:
     - Network.Wamp
@@ -23,6 +20,3 @@ library:
     - base
     - wamp-common
     - wamp-router
-
-
-

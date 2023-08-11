@@ -1,5 +1,5 @@
 name:         wamp-router
-version:      "0.1.0.0"
+version:      0.1.1.0
 author:       Maciej Kazulak
 maintainer:   kazulakm@gmail.com
 stability:    experimental
@@ -10,9 +10,6 @@ build-type:   Simple
 
 default-extensions:
   - OverloadedStrings
-
-extra-source-files:
-  - README.md
 
 library:
   exposed-modules:
@@ -28,4 +25,3 @@ library:
     - unordered-containers
     - wamp-common
     - websockets
-

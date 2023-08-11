@@ -1,13 +1,11 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
---
--- hash: fd4a224895e6695159135bab090ca76f46e9f55d263a00c331724021f7e0f7f8
 
 name:           wamp-client
-version:        0.1.0.0
+version:        0.1.1.0
 category:       Network
 stability:      experimental
 author:         Maciej Kazulak
