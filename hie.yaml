@@ -1,0 +1,20 @@
+cradle:
+  stack:
+    - path: "./wamp"
+      component: "wamp:lib"
+
+    - path: "./wamp-client"
+      component: "wamp-client:lib"
+
+    - path: "./wamp-common"
+      component: "wamp-common:lib"
+
+    - path: "./wamp-router"
+      component: "wamp-router:lib"
+
+dependencies:
+  - ./stack.yaml
+  - ./wamp/package.yaml
+  - ./wamp-client/package.yaml
+  - ./wamp-common/package.yaml
+  - ./wamp-router/package.yaml

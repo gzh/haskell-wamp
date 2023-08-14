@@ -1,14 +1,23 @@
-flags: {}
+resolver: lts-20.26
+
+ghc-options:
+  # locally install Haddocs for "everything": deps and the project
+  $everything: -haddock
+  # speed up project build via module-parallel compile in GHC itself
+  $targets: -j
+
 packages:
-- examples/warp-wamp-router
-- wamp
-- wamp-client
-- wamp-common
-- wamp-router
+  - examples/warp-wamp-router
+  - wamp
+  - wamp-client
+  - wamp-common
+  - wamp-router
+
 extra-deps:
-- wuss-1.1.18
-resolver: lts-20.13
+  - wuss-1.1.18
+
 allow-newer: true
+
 flags:
   cryptonite:
     support_aesni: true

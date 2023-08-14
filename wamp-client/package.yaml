@@ -1,5 +1,5 @@
 name:         wamp-client
-version:      "0.1.0.0"
+version:      0.1.1.0
 author:       Maciej Kazulak
 maintainer:   kazulakm@gmail.com
 stability:    experimental
@@ -13,7 +13,6 @@ default-extensions:
 
 extra-source-files:
   - README.md
-
 
 library:
   exposed-modules:
@@ -37,4 +36,3 @@ library:
     - wamp-common
     - websockets
     - wuss
-    
