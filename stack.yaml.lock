@@ -5,19 +5,12 @@
 
 packages:
 - completed:
-    hackage: ixset-1.1.1.2@sha256:3367a3f9167b12601f76d8c161d06cc803ec6eca239d3dd9507ad06414a58897,1656
+    hackage: ixset-typed-0.5.1.0@sha256:b3bf8ded64523a78a88acf0cbe4c715e9594033a0861fd454e08cb4ef3c9b59b,2738
     pantry-tree:
-      sha256: c8520bd0e59edc8d40badd43ff12a6126ebece2fb99982b24ad7d15e5cc3f794
-      size: 388
+      sha256: be3c0191a91b6739987e570522e82f8df61ee8fdf49b7c286196c9e4d9d16df8
+      size: 475
   original:
-    hackage: ixset-1.1.1.2
-- completed:
-    hackage: syb-with-class-0.6.1.14@sha256:7ea98321048777aa57f84d000dbde11d8d0b4988bc7f23dc63c9ea7caa4fffc2,1877
-    pantry-tree:
-      sha256: b0c7f807f137a330aeb77b4db0e528200ad595b4dc96c858c2c292b85e399cfe
-      size: 531
-  original:
-    hackage: syb-with-class-0.6.1.14
+    hackage: ixset-typed-0.5.1.0
 snapshots:
 - completed:
     sha256: abcc4a65c15c7c2313f1a87f01bfd4d910516e1930b99653eef1d2d006515916

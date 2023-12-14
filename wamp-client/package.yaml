@@ -8,7 +8,12 @@ license-file: LICENSE
 category:     Network
 build-type:   Simple
 
+# GHC's GHC2021 language extension is supported by GHC >= 9.2.1
+# for more details see: https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0380-ghc2021.rst
+language: GHC2021
+
 default-extensions:
+  - DataKinds
   - OverloadedStrings
 
 extra-source-files:
@@ -28,7 +33,7 @@ library:
     - base16-bytestring
     - bytestring
     - ed25519
-    - ixset
+    - ixset-typed
     - random
     - text
     - unordered-containers

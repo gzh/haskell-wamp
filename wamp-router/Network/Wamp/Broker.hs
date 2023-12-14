@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-
 -- |
 -- Module      : Network.Wamp.Broker
 -- Description : Broker
@@ -9,7 +6,7 @@
 -- Maintainer  : kazulakm@gmail.com
 -- Stability   : experimental
 -- Portability : portable
--- 
+--
 -- WAMP Broker.
 --
 module Network.Wamp.Broker
@@ -28,12 +25,14 @@ module Network.Wamp.Broker
 where
 
 import Control.Concurrent.MVar
-import Data.IxSet
 import Data.Typeable
+import Data.IxSet.Typed
 
 import Network.Wamp.Connection
 import Network.Wamp.Types
 
+
+type RegistrationIxs = '[SubId, SessId, TopicUri]
 
 -- | Topic subscription as seen by a @Broker@
 --
@@ -49,15 +48,15 @@ data Subscription = Subscription
 instance Ord Subscription where
   compare x y = compare (subscriptionId x) (subscriptionId y)
 
-instance Indexable Subscription where
-  empty = ixSet
-    [ ixFun $ \s -> [subscriptionId s]
-    , ixFun $ \s -> [subscriptionSessionId s]
-    , ixFun $ \s -> [subscriptionTopicUri s]
-    ]
+instance Indexable RegistrationIxs Subscription where
+  indices =
+    ixList
+      (ixFun $ \s -> [subscriptionId s])
+      (ixFun $ \s -> [subscriptionSessionId s])
+      (ixFun $ \s -> [subscriptionTopicUri s])
 
 -- | Current subscriptions known to a @Broker@
-newtype SubscriptionStore = SubscriptionStore (MVar (IxSet Subscription))
+newtype SubscriptionStore = SubscriptionStore (MVar (IxSet RegistrationIxs Subscription))
 
 
 -- | Create a new 'SubscriptionStore'
@@ -104,7 +103,7 @@ deleteSubscriptionBySessId (SubscriptionStore m) sessId = do
   store <- takeMVar m
   let ds = toList $ store @= sessId
   putMVar m $ foldr delete store ds
-   
+
 -- | Return current registration count
 countSubscription :: SubscriptionStore -> IO Int
 countSubscription (SubscriptionStore m) = do

@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-
 -- |
 -- Module      : Network.Wamp.Dealer
 -- Description : Delaer
@@ -9,7 +6,7 @@
 -- Maintainer  : kazulakm@gmail.com
 -- Stability   : experimental
 -- Portability : portable
--- 
+--
 -- WAMP Dealer.
 --
 module Network.Wamp.Dealer
@@ -40,12 +37,14 @@ where
 
 import Prelude hiding (null)
 import Control.Concurrent.MVar
-import Data.IxSet
+import Data.IxSet.Typed
 import Data.Typeable
 
 import Network.Wamp.Connection
 import Network.Wamp.Types
 
+
+type RegistrationIxs = '[RegId, SessId, ProcedureUri]
 
 -- | Remote procedure registration as seen by a @Dealer@
 --
@@ -61,15 +60,15 @@ data Registration = Registration
 instance Ord Registration where
   compare x y = compare (registrationId x) (registrationId y)
 
-instance Indexable Registration where
-  empty = ixSet
-    [ ixFun $ \r -> [registrationId r]
-    , ixFun $ \r -> [registrationSessionId r]
-    , ixFun $ \r -> [registrationProcedureUri r]
-    ]
+instance Indexable RegistrationIxs Registration where
+  indices =
+    ixList
+      (ixFun $ \r -> [registrationId r])
+      (ixFun $ \r -> [registrationSessionId r])
+      (ixFun $ \r -> [registrationProcedureUri r])
 
 -- | Current remote procedure registrations known to a @Dealer@
-newtype RegistrationStore = RegistrationStore (MVar (IxSet Registration))
+newtype RegistrationStore = RegistrationStore (MVar (IxSet RegistrationIxs Registration))
 
 
 -- | Create a new 'RegistrationStore'
@@ -143,6 +142,8 @@ newtype CalleeSessId = CalleeSessId SessId
   deriving (Eq, Ord, Show, Typeable)
 
 
+type InvocationInfoIxs = '[ReqId, CalleeSessId, SessId]
+
 -- | Remote procedure invocation as seen by a @Dealer@
 --
 -- An 'InvocationInfo' is stored by a @Dealer@ for each @Invocation@ sent.
@@ -160,15 +161,15 @@ data InvocationInfo = InvocationInfo
 instance Ord InvocationInfo where
   compare x y = compare (invocationReqId x) (invocationReqId y)
 
-instance Indexable InvocationInfo where
-  empty = ixSet
-    [ ixFun $ \r -> [invocationReqId r]
-    , ixFun $ \r -> [invocationCalleeSessionId r]
-    , ixFun $ \r -> [invocationCallerSessionId r]
-    ]
+instance Indexable InvocationInfoIxs InvocationInfo where
+  indices =
+    ixList
+      (ixFun $ \r -> [invocationReqId r])
+      (ixFun $ \r -> [invocationCalleeSessionId r])
+      (ixFun $ \r -> [invocationCallerSessionId r])
 
 -- | Current invocations known to a @Dealer@
-newtype InvocationStore = InvocationStore (MVar (IxSet InvocationInfo))
+newtype InvocationStore = InvocationStore (MVar (IxSet InvocationInfoIxs InvocationInfo))
 
 
 -- | Create a new 'InvocationStore'

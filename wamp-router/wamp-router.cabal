@@ -22,14 +22,15 @@ library
   other-modules:
       Paths_wamp_router
   default-extensions:
+      DataKinds
       OverloadedStrings
   build-depends:
       aeson
     , base
     , bytestring
-    , ixset
+    , ixset-typed
     , random
     , unordered-containers
     , wamp-common
     , websockets
-  default-language: Haskell2010
+  default-language: GHC2021

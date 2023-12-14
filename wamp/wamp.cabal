@@ -27,4 +27,4 @@ library
       base
     , wamp-common
     , wamp-router
-  default-language: Haskell2010
+  default-language: GHC2021

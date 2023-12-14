@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings  #-}
-
 -- |
 -- Module      : Network.Wamp.Connection
 -- Description : Connection

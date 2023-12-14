@@ -1,7 +1,3 @@
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE DeriveDataTypeable         #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 -- |
 -- Module      : Network.Wamp.Types
 -- Copyright   : (c) Maciej Kazulak, 2015
@@ -9,7 +5,7 @@
 -- Maintainer  : kazulakm@gmail.com
 -- Stability   : experimental
 -- Portability : portable
--- 
+--
 -- Entities defined in the protocol specification. Mainly 'Network.Wamp.Messages.Message' building blocks.
 --
 module Network.Wamp.Types
@@ -37,7 +33,7 @@ module Network.Wamp.Types
 
   , Role (..)
   , MessageType (..)
-  
+
   , dict
   , array
   )
@@ -60,14 +56,14 @@ import           Data.Typeable
 -- | Internal representation for ID types.
 --
 -- WAMP IDs are integers between (inclusive) 0 and 2^53.
-type ID = Int64  
+type ID = Int64
 
 
 -- | Internal representation for URI types.
 --
 -- Must be able to hold UTF-8 data.
-type URI = Text               
-     
+type URI = Text
+
 
 -- | Internal representation for dict types.
 type Dict = KM.KeyMap Value
@@ -160,7 +156,7 @@ data Role
 -- | Message types.
 data MessageType
   = MsgTypeHello
-  | MsgTypeWelcome 
+  | MsgTypeWelcome
   | MsgTypeAbort
   | MsgTypeChallenge
   | MsgTypeAuthenticate
