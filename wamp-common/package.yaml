@@ -1,5 +1,5 @@
 name:         wamp-common
-version:      0.1.1.0
+version:      0.1.2.0
 description:  Web Application Messaging Protocol v2 Basic Profile
               building blocks common to both Client and Router.
 author:       Maciej Kazulak
