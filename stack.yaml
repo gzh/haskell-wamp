@@ -1,4 +1,4 @@
-resolver: lts-20.26
+resolver: lts-21.24
 
 ghc-options:
   # locally install Haddocs for "everything": deps and the project
@@ -14,12 +14,4 @@ packages:
   - wamp-router
 
 extra-deps:
-  - wuss-1.1.18
-
-allow-newer: true
-
-flags:
-  cryptonite:
-    support_aesni: true
-  mintty:
-    Win32-2-13-1: false
+  - ixset-typed-0.5.1.0

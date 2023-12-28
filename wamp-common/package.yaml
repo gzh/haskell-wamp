@@ -1,5 +1,5 @@
 name:         wamp-common
-version:      0.1.1.0
+version:      0.1.2.0
 description:  Web Application Messaging Protocol v2 Basic Profile
               building blocks common to both Client and Router.
 author:       Maciej Kazulak
@@ -9,6 +9,10 @@ license:      MIT
 license-file: LICENSE
 category:     Network
 build-type:   Simple
+
+# GHC's GHC2021 language extension is supported by GHC >= 9.2.1
+# for more details see: https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0380-ghc2021.rst
+language: GHC2021
 
 default-extensions:
   - OverloadedStrings

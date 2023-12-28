@@ -1,5 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE RecordWildCards #-}
 
 -- |
 -- Module      : Network.Wamp.Client
@@ -43,7 +42,7 @@ import           Data.Aeson.Key
 import qualified Data.Aeson.KeyMap       as KM
 import qualified Network.WebSockets      as WS
 import qualified System.Random           as R
-import qualified Data.IxSet              as Ix
+import qualified Data.IxSet.Typed        as Ix
 import qualified Data.Vector             as V
 import qualified Data.Text               as T
 import Data.Typeable
@@ -73,12 +72,12 @@ data Session = Session
   , sessionSubscriptions       :: SubscriptionStore
   , sessionRegistrations       :: RegistrationStore
 
-  , sessionPublishRequests     :: Store PublishRequest
-  , sessionSubscribeRequests   :: Store SubscribeRequest
-  , sessionUnsubscribeRequests :: Store UnsubscribeRequest
-  , sessionCallRequests        :: Store CallRequest
-  , sessionRegisterRequests    :: Store RegisterRequest
-  , sessionUnregisterRequests  :: Store UnregisterRequest
+  , sessionPublishRequests     :: PublishRequestStore
+  , sessionSubscribeRequests   :: SubscribeRequestStore
+  , sessionUnsubscribeRequests :: UnsubscribeRequestStore
+  , sessionCallRequests        :: CallRequestStore
+  , sessionRegisterRequests    :: RegisterRequestStore
+  , sessionUnregisterRequests  :: UnregisterRequestStore
 
   , sessionGenId               :: IO ID
   }
@@ -167,8 +166,8 @@ readerLoop session = go
               sendMessage conn $ Goodbye (Details mempty) "wamp.close.goodbye_and_out"
 
             Error msgType reqId details errorUri args argskw -> do
-              let fail' :: (Storeable a, HasPromise a b, Exception e) =>
-                           (Session -> Store a) -> e -> IO ()
+              let fail' :: (Storeable ixs a, HasPromise a b, Exception e, Ix.IsIndexOf ReqId ixs)
+                        => (Session -> Store ixs a) -> e -> IO ()
                   fail' reqStore x = do
                     mr <- extract (reqStore session) reqId
                     case mr of
@@ -374,7 +373,7 @@ tryPublishAck a b c d e = publishAck' a b c d e >>= takeMVar
 completeSessionClosed :: Result a -> IO ()
 completeSessionClosed r = tryTakeMVar r >> putMVar r (Left $ toException $ SessionClosed)
 
-finalizeOutstanding :: (Storeable a, HasPromise a b) => Store a -> IO ()
+finalizeOutstanding :: (Storeable ixs a, HasPromise a b) => Store ixs a -> IO ()
 finalizeOutstanding stor = do
   x <- let Store s = stor in takeMVar s
   forConcurrently_ (Ix.toList x) $ completeSessionClosed . getPromise
@@ -388,7 +387,7 @@ finalizeSession session =
                    ,finalizeOutstanding . sessionRegisterRequests
                    ,finalizeOutstanding . sessionUnregisterRequests
                    ] ($ session)
-  
+
 genGlobalId :: IO ID
 genGlobalId = R.randomRIO (0, 2^(53 :: Int))
 

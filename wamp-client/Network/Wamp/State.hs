@@ -1,11 +1,6 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FunctionalDependencies  #-}
+{-# LANGUAGE TypeFamilies            #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 
 -- |
 -- Module      : Network.Wamp.State
@@ -32,11 +27,17 @@ module Network.Wamp.State
   , Storeable (..)
   , HasPromise(..)
   , PublishRequest (..)
+  , PublishRequestStore
   , SubscribeRequest (..)
+  , SubscribeRequestStore
   , UnsubscribeRequest (..)
+  , UnsubscribeRequestStore
   , CallRequest (..)
+  , CallRequestStore
   , RegisterRequest (..)
+  , RegisterRequestStore
   , UnregisterRequest (..)
+  , UnregisterRequestStore
 
   , mkSubscriptionStore
   , insertSubscription
@@ -57,8 +58,8 @@ where
 
 import           Control.Concurrent.MVar
 import           Control.Exception        (SomeException (..))
-import           Data.IxSet               hiding (insert)
-import qualified Data.IxSet               as Ix (insert)
+import           Data.IxSet.Typed         hiding (insert)
+import qualified Data.IxSet.Typed         as Ix (insert)
 import           Data.Typeable
 
 import Network.Wamp.Types
@@ -70,10 +71,12 @@ type Result a = MVar (Either SomeException a)
 type Handler = Arguments -> ArgumentsKw -> Details -> IO ()
 
 
+type SubscriptionIxs = '[SubId, TopicUri]
+
 -- | Topic subscription as seen by a @Subscriber@
 --
 -- @Subscriber@ stores one subscription for each successful @Subscribed@ message.
-data Subscription = Subscription 
+data Subscription = Subscription
   { subscriptionId       :: SubId
   , subscriptionTopicUri :: TopicUri
   , subscriptionHandler  :: Handler
@@ -90,17 +93,17 @@ instance Ord Subscription where
 instance Show Subscription where
   show (Subscription subId topicUri _ _) = "Subscription " ++ show subId ++ " " ++ show topicUri
 
-instance Indexable Subscription where
-  empty = ixSet
-    [ ixFun $ \s -> [subscriptionId s]
-    , ixFun $ \s -> [subscriptionTopicUri s]
-    ]
+instance Indexable SubscriptionIxs Subscription where
+  indices =
+    ixList
+      (ixFun $ \s -> [subscriptionId s])
+      (ixFun $ \s -> [subscriptionTopicUri s])
 
 
 -- | Current subscriptions known to a @Subscriber@
-type SubscriptionStore = TicketStore Subscription
+type SubscriptionStore = TicketStore SubscriptionIxs Subscription
 
-instance TicketClass Subscription where
+instance TicketClass SubscriptionIxs Subscription where
   type TicketId Subscription = SubId
   type TicketUri Subscription = TopicUri
 
@@ -123,56 +126,54 @@ lookupSubscriptionByTopicUri = lookupTicketByUri
 -- | Delete a  'Subscription' by 'Network.Wamp.Types.SubId'
 deleteSubscription :: SubscriptionStore -> SubId -> IO ()
 deleteSubscription = deleteTicket
-   
+
 -- | Return current registration count
 countSubscription :: SubscriptionStore -> IO Int
 countSubscription = countTicket
 
 
-data Store a = Store (MVar (IxSet a))
+newtype Store ixs a = Store (MVar (IxSet ixs a))
 
-class (Eq s, Ord s, Indexable s, Typeable s) => Storeable s where
-  mkStore :: IO (Store s)
+class (Eq s, Ord s, Indexable ixs s, Typeable s) => Storeable ixs s where
+  mkStore :: IO (Store ixs s)
   mkStore = do
     m <- newMVar empty
     return $ Store m
 
-  insert :: Store s -> s -> IO ()
+  insert :: Store ixs s -> s -> IO ()
   insert (Store m) s = do
     store <- takeMVar m
     putMVar m $ Ix.insert s store
 
-  lookup :: Store s -> ReqId -> IO (Maybe s)
+  lookup :: IsIndexOf ReqId ixs => Store ixs s -> ReqId -> IO (Maybe s)
   lookup (Store m) reqId = do
     store <- readMVar m
     return $ getOne $ store @= reqId
 
-  delete :: Store s -> ReqId -> IO ()
+  delete :: IsIndexOf ReqId ixs => Store ixs s -> ReqId -> IO ()
   delete (Store m) reqId = do
     store <- takeMVar m
     putMVar m $! deleteIx reqId store
 
-  extract :: Store s -> ReqId -> IO (Maybe s)
+  extract :: IsIndexOf ReqId ixs => Store ixs s -> ReqId -> IO (Maybe s)
   extract (Store m) reqId = do
     store <- takeMVar m
     putMVar m $! deleteIx reqId store
     return $ getOne $ store @= reqId
 
-  count :: Store s -> IO Int
+  count :: Store ixs s -> IO Int
   count (Store m) = do
     store <- readMVar m
     return $ size store
 
 
-instance Storeable PublishRequest
-instance Storeable SubscribeRequest
-instance Storeable UnsubscribeRequest
-instance Storeable CallRequest
-instance Storeable RegisterRequest
-instance Storeable UnregisterRequest
-
 class HasPromise a b | a -> b where
   getPromise :: a -> Result b
+
+
+type PublishRequestStore = Store PublishRequestIxs PublishRequest
+
+type PublishRequestIxs = '[ReqId]
 
 -- | Publish request
 data PublishRequest = PublishRequest
@@ -190,13 +191,20 @@ instance Ord PublishRequest where
 instance Show PublishRequest where
   show p = "PublishRequest " ++ show (publishRequestId p)
 
-instance Indexable PublishRequest where
-  empty = ixSet
-    [ ixFun $ \s -> [publishRequestId s]
-    ]
+instance Indexable PublishRequestIxs PublishRequest where
+  indices =
+    ixList
+      (ixFun $ \s -> [publishRequestId s])
+
+instance Storeable PublishRequestIxs PublishRequest
 
 instance HasPromise PublishRequest PubId where
   getPromise = publishPromise
+
+
+type SubscribeRequestStore = Store SubscribeRequestIxs SubscribeRequest
+
+type SubscribeRequestIxs = '[ReqId]
 
 -- | Subscribe request
 data SubscribeRequest = SubscribeRequest
@@ -217,14 +225,20 @@ instance Ord SubscribeRequest where
 instance Show SubscribeRequest where
   show s = "SubscribeRequest " ++ show (subscribeRequestId s)
 
-instance Indexable SubscribeRequest where
-  empty = ixSet
-    [ ixFun $ \s -> [subscribeRequestId s]
-    ]
+instance Indexable SubscribeRequestIxs SubscribeRequest where
+  indices =
+    ixList
+      (ixFun $ \s -> [subscribeRequestId s])
+
+instance Storeable SubscribeRequestIxs SubscribeRequest
 
 instance HasPromise SubscribeRequest Subscription where
   getPromise = subscribePromise
 
+
+type UnsubscribeRequestStore = Store UnsubscribeRequestIxs UnsubscribeRequest
+
+type UnsubscribeRequestIxs = '[ReqId]
 
 -- | Unsubscribe request
 data UnsubscribeRequest = UnsubscribeRequest
@@ -243,14 +257,20 @@ instance Ord UnsubscribeRequest where
 instance Show UnsubscribeRequest where
   show usub = "UnsubscribeRequest " ++ show (unsubscribeRequestId usub)
 
-instance Indexable UnsubscribeRequest where
-  empty = ixSet
-    [ ixFun $ \s -> [unsubscribeRequestId s]
-    ]
+instance Indexable UnsubscribeRequestIxs UnsubscribeRequest where
+  indices =
+    ixList
+      (ixFun $ \s -> [unsubscribeRequestId s])
+
+instance Storeable UnsubscribeRequestIxs UnsubscribeRequest
 
 instance HasPromise UnsubscribeRequest Bool where
   getPromise = unsubscribePromise
 
+
+type CallRequestStore = Store CallRequestIxs CallRequest
+
+type CallRequestIxs = '[ReqId]
 
 -- | Call request
 data CallRequest = CallRequest
@@ -268,19 +288,26 @@ instance Ord CallRequest where
 instance Show CallRequest where
   show r = "CallRequest " ++ (show $ callRequestId r)
 
-instance Indexable CallRequest where
-  empty = ixSet
-    [ ixFun $ \s -> [callRequestId s]
-    ]
+instance Indexable CallRequestIxs CallRequest where
+  indices =
+    ixList
+      (ixFun $ \s -> [callRequestId s])
+
+instance Storeable CallRequestIxs CallRequest
 
 instance HasPromise CallRequest CallResult where
   getPromise = callPromise
+
+
+type RegisterRequestStore = Store RegisterRequestIxs RegisterRequest
+
+type RegisterRequestIxs = '[ReqId]
 
 -- | Register request
 data RegisterRequest = RegisterRequest
   { registerPromise         :: Result Registration
   , registerRequestId       :: ReqId
-  , registerRequestProcUri  :: ProcedureUri 
+  , registerRequestProcUri  :: ProcedureUri
   , registerRequestEndpoint :: Endpoint
   , registerRequestHandleAsync :: Bool
   , registerRequestOptions  :: Options
@@ -296,13 +323,20 @@ instance Ord RegisterRequest where
 instance Show RegisterRequest where
   show r = "RegisterRequest " ++ (show $ registerRequestId r)
 
-instance Indexable RegisterRequest where
-  empty = ixSet
-    [ ixFun $ \s -> [registerRequestId s]
-    ]
+instance Indexable RegisterRequestIxs RegisterRequest where
+  indices =
+    ixList
+      (ixFun $ \s -> [registerRequestId s])
+
+instance Storeable RegisterRequestIxs RegisterRequest
 
 instance HasPromise RegisterRequest Registration where
   getPromise = registerPromise
+
+
+type UnregisterRequestStore = Store UnregisterRequestIxs UnregisterRequest
+
+type UnregisterRequestIxs = '[ReqId]
 
 -- | Unregister request
 data UnregisterRequest = UnregisterRequest
@@ -321,16 +355,21 @@ instance Ord UnregisterRequest where
 instance Show UnregisterRequest where
   show x = "UnregisterRequest " ++ (show $ unregisterRequestId x)
 
-instance Indexable UnregisterRequest where
-  empty = ixSet
-    [ ixFun $ \s -> [unregisterRequestId s]
-    ]
+instance Indexable UnregisterRequestIxs UnregisterRequest where
+  indices =
+    ixList
+      (ixFun $ \s -> [unregisterRequestId s])
+
+instance Storeable UnregisterRequestIxs UnregisterRequest
 
 instance HasPromise UnregisterRequest Bool where
   getPromise = unregisterPromise
 
 type CallResult   = (Arguments, ArgumentsKw)
 type Endpoint     = Arguments -> ArgumentsKw -> Details -> IO CallResult
+
+
+type RegistrationIxs = '[RegId, ProcedureUri]
 
 data Registration = Registration
   { registrationId            :: RegId
@@ -353,15 +392,15 @@ instance Show Registration where
                    ," "
                    ,show $ registrationProcedureUri r]
 
-instance Indexable Registration where
-  empty = ixSet
-    [ ixFun $ \s -> [registrationId s]
-    , ixFun $ \s -> [registrationProcedureUri s]
-    ]
+instance Indexable RegistrationIxs Registration where
+  indices =
+    ixList
+      (ixFun $ \s -> [registrationId s])
+      (ixFun $ \s -> [registrationProcedureUri s])
 
-type RegistrationStore = TicketStore Registration
+type RegistrationStore = TicketStore RegistrationIxs Registration
 
-instance TicketClass Registration where
+instance TicketClass RegistrationIxs Registration where
   type TicketId Registration = RegId
   type TicketUri Registration = ProcedureUri
 
@@ -384,7 +423,7 @@ lookupRegistrationByProcedureUri = lookupTicketByUri
 -- | Delete a  'Registration' by 'Network.Wamp.Types.RegId'
 deleteRegistration :: RegistrationStore -> RegId -> IO ()
 deleteRegistration = deleteTicket
-   
+
 -- | Return current registration count
 countRegistration :: RegistrationStore -> IO Int
 countRegistration = countTicket
@@ -392,44 +431,56 @@ countRegistration = countTicket
 -- common implementation for subscriptions and registrations:
 -- we get a ticket from router. ticket has an id, and it also has an uri.
 
-class (Eq a, Ord a, Indexable a, Typeable a, Typeable (TicketId a), Typeable (TicketUri a)) =>
-      TicketClass a where
+class (Eq a, Ord a, Indexable ixs a, Typeable a, Typeable (TicketId a), Typeable (TicketUri a)) =>
+      TicketClass ixs a where
   type TicketId a
   type TicketUri a
 
-data TicketStore a = TicketStore (MVar (IxSet a))
+newtype TicketStore ixs a = TicketStore (MVar (IxSet ixs a))
 
-mkTicketStore :: (TicketClass a) => IO (TicketStore a)
+mkTicketStore :: (TicketClass ixs a) => IO (TicketStore ixs a)
 mkTicketStore = do
   m <- newMVar empty
   return $ TicketStore m
 
 -- | Insert a 'Ticket' into a 'TicketStore'
-insertTicket :: (TicketClass a) => TicketStore a -> a -> IO ()
+insertTicket :: (TicketClass ixs a) => TicketStore ixs a -> a -> IO ()
 insertTicket (TicketStore m) reg = do
   store <- takeMVar m
   putMVar m $ Ix.insert reg store
 
 -- | Lookup a  'Ticket' by 'Network.Wamp.Types.RegId'
-lookupTicket :: (TicketClass a) => TicketStore a -> TicketId a -> IO (Maybe a)
+lookupTicket
+  :: (TicketClass ixs a, IsIndexOf (TicketId a) ixs)
+  => TicketStore ixs a
+  -> TicketId a
+  -> IO (Maybe a)
 lookupTicket (TicketStore m) regId = do
   store <- readMVar m
   return $ getOne $ store @= regId
 
 -- | Lookup a  'Ticket' by 'Network.Wamp.Types.ProcedureUri'
-lookupTicketByUri :: (TicketClass a) => TicketStore a -> TicketUri a -> IO [a]
+lookupTicketByUri
+  :: (TicketClass ixs a, IsIndexOf (TicketUri a) ixs)
+  => TicketStore ixs a
+  -> TicketUri a
+  -> IO [a]
 lookupTicketByUri (TicketStore m) uri = do
   store <- readMVar m
   return $ toList $ store @= uri
 
 -- | Delete a  'Ticket' by 'Network.Wamp.Types.RegId'
-deleteTicket :: (TicketClass a) => TicketStore a -> TicketId a -> IO ()
+deleteTicket
+  :: (TicketClass ixs a, IsIndexOf (TicketId a) ixs)
+  => TicketStore ixs a
+  -> TicketId a
+  -> IO ()
 deleteTicket (TicketStore m) ticketId = do
   store <- takeMVar m
   putMVar m $ deleteIx ticketId store
-   
+
 -- | Return current registration count
-countTicket :: (TicketClass a) => TicketStore a -> IO Int
+countTicket :: (TicketClass ixs a) => TicketStore ixs a -> IO Int
 countTicket (TicketStore m) = do
   store <- readMVar m
   return $ size store

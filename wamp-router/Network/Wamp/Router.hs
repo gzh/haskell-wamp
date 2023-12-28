@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings  #-}
-
 -- |
 -- Module      : Network.Wamp.Router
 -- Description : Router
@@ -8,7 +6,7 @@
 -- Maintainer  : kazulakm@gmail.com
 -- Stability   : experimental
 -- Portability : portable
--- 
+--
 -- WAMP Router.
 --
 module Network.Wamp.Router
@@ -100,7 +98,7 @@ defaultRouter realmUri = do
   registrations <- newRegistrationStore
   invocations <- newInvocationStore
   subscriptions <- newSubscriptionStore
-  return $ Router 
+  return $ Router
     { routerRealm         = realmUri
     , routerRoles         = [RoleBroker, RoleDealer]
     , routerSessions      = sessions
@@ -136,7 +134,7 @@ establishSession realmMap conn = do
 
           -- TODO: send actual roles instead of fixed dict
           sendMessage conn $ Welcome sessId $ Details $ KM.fromList
-            [ fromText "roles" .= object 
+            [ fromText "roles" .= object
               [ fromText "broker" .= object []
               , fromText "dealer" .= object []
               ]
@@ -161,7 +159,7 @@ cleanupSession router session = do
   -- if the client was processing an Invocation but did not Yield yet
   -- we have to send an Error to the Caller
 
-  mapM_ ($ sessId) 
+  mapM_ ($ sessId)
     [ deleteRegistrationBySessId (routerRegistrations router)
     , deleteInvocationByCallerSessId (routerInvocations router)
     , deleteInvocationByCalleeSessId (routerInvocations router)
@@ -181,7 +179,7 @@ cleanupSession router session = do
 
 
 -- | Send Event messages to all subscribers in response to a Publish
-notifySubscribers 
+notifySubscribers
   :: Router   -- ^ 'Router' for the @Realm@ in question
   -> PubId    -- ^ Publication id (the one from Published)
   -> Message  -- ^ Publish message
@@ -190,7 +188,7 @@ notifySubscribers router pubId pubMsg =
   case pubMsg of
     Publish _ _ topicUri args kwArgs -> do
       subs <- lookupSubscriptionByTopicUri (routerSubscriptions router) topicUri
-      flip mapM_ subs (\(Subscription subId _ _ subscriberSession) -> 
+      flip mapM_ subs (\(Subscription subId _ _ subscriberSession) ->
         sendMessage (sessionConnection subscriberSession) $ Event subId pubId (Details dict) args kwArgs)
     _ -> error "expected a Publish message"
 

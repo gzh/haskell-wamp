@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- |
 -- Module      : Network.Wamp.Messages
 -- Description : Message definitions
@@ -8,7 +6,7 @@
 -- Maintainer  : kazulakm@gmail.com
 -- Stability   : experimental
 -- Portability : portable
--- 
+--
 -- WAMP message definitions.
 --
 module Network.Wamp.Messages
@@ -26,11 +24,11 @@ import Network.Wamp.Types
 
 
 -- | WAMP message
--- 
+--
 -- See the <https://github.com/tavendo/WAMP/blob/master/spec/basic.md#message-definitions Message Definitions>
 -- section of the protocol specification.
 data Message
-  -- Session 
+  -- Session
   = Hello         RealmUri Details
   | Challenge     AuthMethod Extra
   | Authenticate  Signature Extra
@@ -59,7 +57,7 @@ data Message
 
 
 -- Unfortunatelly the spec defines some fields as optional and even recommends
--- (as in SHOULD) that they NOT be sent at all when empty. 
+-- (as in SHOULD) that they NOT be sent at all when empty.
 instance FromJSON Message where
   parseJSON = withArray "WAMP message" $ \a -> do
     msgType <- parseJSON $ V.head a
@@ -101,7 +99,7 @@ instance ToJSON Message where
       Welcome       a b           -> toJsonMsg2         MsgTypeWelcome      a b
       Abort         a b           -> toJsonMsg2         MsgTypeAbort        a b
       Goodbye       a b           -> toJsonMsg2         MsgTypeGoodbye      a b
-      Error         a b c d e f   -> Array $ array <&>  MsgTypeError        <&> a <&> b <&> c <&> d <&> e <&> f                             
+      Error         a b c d e f   -> Array $ array <&>  MsgTypeError        <&> a <&> b <&> c <&> d <&> e <&> f
 
       Publish       a b c d e     -> Array $ array <&>  MsgTypePublish      <&> a <&> b <&> c <&> d <&> e
       Published     a b           -> toJsonMsg2         MsgTypePublished    a b
@@ -151,17 +149,17 @@ toJsonMsg2 :: (ToJSON a, ToJSON b) => MessageType -> a -> b -> Value
 toJsonMsg2 msgType a1 a2 = Array $ array <&> msgType <&> a1 <&> a2
 
 toJsonMsg3 :: (ToJSON b, ToJSON c, ToJSON d) => MessageType -> b -> c -> d -> Value
-toJsonMsg3 msgType a1 a2 a3 = Array $ array <&> msgType <&> a1 <&> a2 <&> a3 
+toJsonMsg3 msgType a1 a2 a3 = Array $ array <&> msgType <&> a1 <&> a2 <&> a3
 
 -- | Helper for constructing 'Error' messages
 --
 -- Sets empty 'Details', 'Arguments' and 'ArgumentsKw'.
 defaultError :: MessageType -> ReqId -> ErrorUri -> Message
-defaultError msgType reqId errorUri = 
-  Error 
+defaultError msgType reqId errorUri =
+  Error
     msgType
     reqId
-    (Details dict) 
+    (Details dict)
     errorUri
-    (Arguments array) 
+    (Arguments array)
     (ArgumentsKw dict)
