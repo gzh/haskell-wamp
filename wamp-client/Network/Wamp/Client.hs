@@ -32,6 +32,7 @@ module Network.Wamp.Client
   , tryRegister
   , tryUnregister
   , tryCall
+  , sendCloseRealm
   )
 where
 
@@ -153,17 +154,25 @@ connect conn realmUri auth =
             Welcome sessId _ -> mkSession conn sessId
             _ -> throwIO $ ProtocolException $ "Unexpected message: " ++ show msg
 
+sendCloseRealm :: Session -> IO ()
+sendCloseRealm session =
+  sendMessage (sessionConnection session) $ Goodbye (Details mempty) "wamp.close.close_realm"
+
 readerLoop :: Session -> IO ()
 readerLoop session = go
   where conn = sessionConnection session
         go = do
           msg <- receiveMessage conn
           case msg of
-            Abort {} -> finalizeSession session
-
-            Goodbye {} -> do
+            Abort {} -> do
               finalizeSession session
-              sendMessage conn $ Goodbye (Details mempty) "wamp.close.goodbye_and_out"
+              connectionClose conn
+
+            Goodbye details reason -> do
+              finalizeSession session
+              when (reason /= "wamp.close.goodbye_and_out") $
+                sendMessage conn $ Goodbye (Details mempty) "wamp.close.goodbye_and_out"
+              connectionClose conn
 
             Error msgType reqId details errorUri args argskw -> do
               let fail' :: (Storeable ixs a, HasPromise a b, Exception e, Ix.IsIndexOf ReqId ixs)
